@@ -39,6 +39,7 @@ select{font:inherit;width:100%;padding:10px;border-radius:10px;border:0;backgrou
 <div id="app"></div>
 <script src="words.js"></script>
 <script src="reading.js"></script>
+<script src="extra.js"></script>
 <script>
 const tg=window.Telegram&&window.Telegram.WebApp;
 if(tg){tg.ready();tg.expand();}
@@ -86,9 +87,10 @@ function home(){
  <h2>Тема</h2>${topicSelect()}
  <div class="row"><button id="b1">Карточки</button><button id="b2">Квиз</button></div>
  <div class="row"><button id="b3" class="sec">Reading: T / F / NG</button></div>
+ <div class="row"><button id="b4" class="sec">Listening</button><button id="b5" class="sec">Writing</button></div>
  <p class="tag">Карточки показываются с интервалами 1, 2, 4, 8, 16 дней. Ошибка возвращает карточку на сегодня.</p>`;
  bindTopic(home);
- $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b3').onclick=readingList;
+ $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b3').onclick=readingList;$('#b4').onclick=listeningList;$('#b5').onclick=writingList;
 }
 const backBtn=()=>`<button class="back" id="bk">← Назад</button>`;
 const bindBack=()=>{$('#bk').onclick=home};
