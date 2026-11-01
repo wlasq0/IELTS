@@ -126,7 +126,7 @@ function listening(k){
   const [a,b]=q.s.split('____');
   return `<div class="q"><div class="st">${i+1}. ${esc(a)}<input id="li${i}" autocomplete="off" style="width:110px;font:inherit;padding:4px;margin:0 4px">${esc(b||'')}</div><div class="exp" id="le${i}"></div></div>`;
  }).join('');
- app.innerHTML=backBtn()+`<h2>${esc(L.title)}${lvBadge(L)}</h2><p class="tag">Голос (подбирается автоматически, можно сменить):</p><select id="vs"></select><div class="row"><button id="vt" class="sec">Проверить голос</button></div><div class="row"><button id="pl">▶ Начать (один раз)</button></div><p class="tag" id="st"></p>${qs}<div class="row"><button id="ck">Проверить</button></div><div id="res"></div>`;
+ app.innerHTML=backBtn()+`<h2>${esc(L.title)}${lvBadge(L)}</h2><p class="tag">Голос для Listening (подбирается автоматически, можно сменить):</p><select id="vs"></select><div class="row"><button id="vt" class="sec">Проверить голос</button></div><div class="row"><button id="pl">▶ Начать (один раз)</button></div><p class="tag" id="st"></p>${qs}<div class="row"><button id="ck">Проверить</button></div><div id="res"></div>`;
  bindBack();
  $('#bk').onclick=()=>{if(window.speechSynthesis)speechSynthesis.cancel();listeningList()};
  initVoice();
