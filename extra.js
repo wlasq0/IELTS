@@ -38,14 +38,34 @@ const WRITING=[
  {topic:"Health",title:"Prevention or treatment",prompt:"Governments should spend more money on preventing illness than on treating it. To what extent do you agree or disagree?"}
 ];
 
+function enVoices(){return (window.speechSynthesis?speechSynthesis.getVoices():[]).filter(v=>v.lang&&v.lang.toLowerCase().startsWith('en'))}
+function voiceScore(v){let s=0;const n=v.name;
+ if(/natural|neural|online/i.test(n))s+=100;
+ if(/premium|enhanced|siri/i.test(n))s+=60;
+ if(/google/i.test(n))s+=30;
+ if(/en[-_]GB/i.test(v.lang))s+=10;
+ if(/\b(david|zira|mark|hazel|george)\b/i.test(n)&&!/online|natural/i.test(n))s-=20;
+ return s}
+function pickVoice(){const vs=enVoices();if(!vs.length)return null;
+ let saved='';try{saved=localStorage.getItem('ielts_voice')||''}catch(e){}
+ return vs.find(v=>v.name===saved)||vs.slice().sort((a,b)=>voiceScore(b)-voiceScore(a))[0]}
+function initVoice(){
+ const sel=$('#vs');if(!sel)return;
+ const fill=()=>{const vs=enVoices().sort((a,b)=>voiceScore(b)-voiceScore(a));
+  if(!vs.length){sel.innerHTML='<option>Голоса не найдены</option>';return}
+  const cur=pickVoice();
+  sel.innerHTML=vs.map(v=>`<option value="${esc(v.name)}"${cur&&v.name===cur.name?' selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')};
+ fill();if(window.speechSynthesis)speechSynthesis.onvoiceschanged=fill;
+ sel.onchange=()=>{try{localStorage.setItem('ielts_voice',sel.value)}catch(e){}};
+ $('#vt').onclick=()=>{speakAll("Hello! This is how the recording will sound. The deadline is the fourteenth of December.",null)};
+}
 function speakAll(text,onEnd){
  if(!window.speechSynthesis){onEnd&&onEnd(false);return}
  speechSynthesis.cancel();
  const parts=text.match(/[^.!?]+[.!?]+/g)||[text];
- const voices=speechSynthesis.getVoices();
- const v=voices.find(x=>x.lang==='en-GB')||voices.find(x=>x.lang.startsWith('en'));
+ const v=pickVoice();
  parts.forEach((p,i)=>{
-  const u=new SpeechSynthesisUtterance(p.trim());u.lang='en-GB';u.rate=.95;if(v)u.voice=v;
+  const u=new SpeechSynthesisUtterance(p.trim());u.lang=v?v.lang:'en-GB';u.rate=.95;if(v)u.voice=v;
   if(i===parts.length-1)u.onend=()=>onEnd&&onEnd(true);
   u.onerror=()=>{if(i===parts.length-1)onEnd&&onEnd(true)};
   speechSynthesis.speak(u);
@@ -69,10 +89,10 @@ function listening(k){
   const [a,b]=q.s.split('____');
   return `<div class="q"><div class="st">${i+1}. ${esc(a)}<input id="li${i}" autocomplete="off" style="width:110px;font:inherit;padding:4px;margin:0 4px">${esc(b||'')}</div><div class="exp" id="le${i}"></div></div>`;
  }).join('');
- app.innerHTML=backBtn()+`<h2>${esc(L.title)}</h2><div class="row"><button id="pl">▶ Начать (один раз)</button></div><p class="tag" id="st"></p>${qs}<div class="row"><button id="ck">Проверить</button></div><div id="res"></div>`;
+ app.innerHTML=backBtn()+`<h2>${esc(L.title)}</h2><p class="tag">Голос (подбирается автоматически, можно сменить):</p><select id="vs"></select><div class="row"><button id="vt" class="sec">Проверить голос</button></div><div class="row"><button id="pl">▶ Начать (один раз)</button></div><p class="tag" id="st"></p>${qs}<div class="row"><button id="ck">Проверить</button></div><div id="res"></div>`;
  bindBack();
  $('#bk').onclick=()=>{if(window.speechSynthesis)speechSynthesis.cancel();home()};
- const picks=L.questions.map(()=>null);
+ initVoice();const picks=L.questions.map(()=>null);
  document.querySelectorAll('.seg').forEach(sg=>sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
   const i=+sg.dataset.i;picks[i]=+b.dataset.v;sg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
  }));
