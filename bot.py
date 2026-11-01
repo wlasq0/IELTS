@@ -60,8 +60,7 @@ async def start(m: Message):
         menu_button=MenuButtonWebApp(text="Учить", web_app=WebAppInfo(url=WEBAPP_URL)),
     )
     await m.answer(
-        "Привет! Это тренажёр IELTS уровня C1: 300 фраз, квиз и Reading (True / False / Not Given).\n"
-        "Команда /word даёт случайную фразу.",
+        "Hi! This is a bot for IELTS preparation. Tap the button below to start.",
         reply_markup=open_kb(),
     )
 
