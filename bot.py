@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.filters import Command, CommandStart
@@ -16,6 +17,7 @@ from aiogram.types import (
     Message,
     WebAppInfo,
 )
+from aiogram.utils.web_app import safe_parse_webapp_init_data
 
 try:
     from dotenv import load_dotenv
@@ -26,6 +28,11 @@ except ImportError:
 TOKEN = os.getenv("BOT_TOKEN")
 # Адрес Mini App (публичная ссылка, не секрет). Можно переопределить через WEBAPP_URL.
 WEBAPP_URL = os.getenv("WEBAPP_URL") or "https://wlasq0.github.io/IELTS/"
+# Сервер для пингов из Mini App. Наружу его пробрасывают через прокси на POST /ping.
+PING_HOST = os.getenv("PING_HOST") or "127.0.0.1"
+PING_PORT = int(os.getenv("PING_PORT") or 8081)
+PING_ORIGIN = "https://wlasq0.github.io"  # откуда разрешены запросы (домен Mini App)
+PING_MAX_AGE = 24 * 60 * 60  # initData старше суток не принимаем
 
 if not TOKEN:
     raise SystemExit("Заполни BOT_TOKEN (в .env или в переменных окружения)")
@@ -70,7 +77,7 @@ def save_subs(subs: set) -> None:
 SUBS = load_subs()
 
 ACTIVITY_FILE = Path(__file__).parent / "activity.json"
-ACTIVE_WINDOW = 2 * 60 * 60  # не напоминать, если пользователь писал боту за последние 2 часа
+ACTIVE_WINDOW = 2 * 60 * 60  # не напоминать, если пользователь писал боту или занимался в Mini App за последние 2 часа
 DELETE_AFTER = 4  # секунд: через столько удаляется напоминание после действия пользователя
 PENDING = {}  # chat_id -> id отправленных, но ещё не удалённых напоминаний
 _tasks = set()
@@ -105,7 +112,7 @@ async def send_reminders(now: float = None):
     now = time.time() if now is None else now
     for chat_id in list(SUBS):
         if now - ACTIVITY.get(chat_id, 0) <= ACTIVE_WINDOW:
-            continue  # пользователь недавно был в чате, напоминание не нужно
+            continue  # пользователь недавно был в чате или в Mini App, напоминание не нужно
         try:
             msg = await bot.send_message(chat_id, REMIND_TEXT, reply_markup=open_kb())
             PENDING.setdefault(chat_id, []).append(msg.message_id)
@@ -126,7 +133,7 @@ async def delete_pending(chat_id: int):
 
 
 def touch(chat_id: int) -> None:
-    """Пользователь что-то сделал в чате: запоминаем время и удаляем напоминания."""
+    """Пользователь что-то сделал в чате или в Mini App: запоминаем время и удаляем напоминания."""
     ACTIVITY[chat_id] = time.time()
     save_activity()
     if PENDING.get(chat_id):
@@ -184,12 +191,39 @@ async def any_message(m: Message):
     touch(m.chat.id)  # любое другое сообщение тоже считается действием (ответа нет)
 
 
+async def ping(request: web.Request) -> web.Response:
+    """Mini App сообщает, что пользователь занимается. В теле запроса initData от Telegram."""
+    headers = {"Access-Control-Allow-Origin": PING_ORIGIN}
+    try:
+        data = safe_parse_webapp_init_data(TOKEN, await request.text())
+    except ValueError:
+        return web.Response(status=403, headers=headers)  # подпись не сошлась: запрос не от Telegram
+    if not data.user or time.time() - data.auth_date.timestamp() > PING_MAX_AGE:
+        return web.Response(status=403, headers=headers)
+    touch(data.user.id)  # в личке с ботом id чата совпадает с id пользователя
+    return web.Response(text="ok", headers=headers)
+
+
+async def start_ping_server():
+    app = web.Application()
+    app.router.add_post("/ping", ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    try:
+        await web.TCPSite(runner, PING_HOST, PING_PORT).start()
+    except OSError as e:
+        print(f"Сервер пингов не запущен ({e}), бот работает без него")
+    return runner
+
+
 async def main():
     reminders = asyncio.create_task(reminder_loop())
+    runner = await start_ping_server()
     try:
         await dp.start_polling(bot)
     finally:
         reminders.cancel()
+        await runner.cleanup()
 
 
 if __name__ == "__main__":
