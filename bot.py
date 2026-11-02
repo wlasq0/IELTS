@@ -60,7 +60,7 @@ async def start(m: Message):
         menu_button=MenuButtonWebApp(text="Учить", web_app=WebAppInfo(url=WEBAPP_URL)),
     )
     await m.answer(
-        "Hi! This is a bot for IELTS preparation. Tap the button below to start.",
+        "This bot helps you prepare for IELTS. Tap the button below to start.",
         reply_markup=open_kb(),
     )
 
@@ -68,7 +68,7 @@ async def start(m: Message):
 @dp.message(Command("word"))
 async def word(m: Message):
     w = random.choice(WORDS)
-    await m.answer(f"{w['en']}\n— {w['ru']}\n\nТема: {w['topic']}", reply_markup=open_kb())
+    await m.answer(f"{w['en']}\n{w['ru']}\n\nТема: {w['topic']}", reply_markup=open_kb())
 
 
 async def main():

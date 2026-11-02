@@ -92,7 +92,7 @@ function home(){
  bindTopic(home);
  $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b3').onclick=readingList;$('#b4').onclick=listeningList;$('#b5').onclick=writingList;
 }
-const backBtn=()=>`<button class="back" id="bk">← Назад</button>`;
+const backBtn=()=>`<button class="back" id="bk">Назад</button>`;
 const bindBack=()=>{$('#bk').onclick=home};
 
 /* ---------- CARDS ---------- */
@@ -124,7 +124,7 @@ function quiz(){
  let i=0,score=0;
  const next=()=>{
   if(i>=p.length){
-   app.innerHTML=backBtn()+`<h1>Результат: ${score} из ${p.length}</h1><p>Слова с ошибками вернулись в карточки на сегодня.</p><div class="row"><button id="again">Ещё раунд</button></div>`;
+   app.innerHTML=backBtn()+`<h1>${score} из ${p.length} правильно</h1><p>Фразы с ошибками снова попадут в сегодняшние карточки.</p><div class="row"><button id="again">Ещё раунд</button></div>`;
    bindBack();$('#again').onclick=quiz;return;
   }
   const w=p[i],dir=Math.random()<.5;

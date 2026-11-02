@@ -25,6 +25,8 @@
  document.head.appendChild(st);
 })();
 
+// склонение: plural(5,'карточка','карточки','карточек') -> 'карточек'
+const plural=(n,a,b,c)=>{const m=n%100,k=n%10;return m>10&&m<20?c:k===1?a:k>=2&&k<=4?b:c};
 const PKEY='ielts_c1_prog_v1';
 let prog={};
 try{prog=JSON.parse(localStorage.getItem(PKEY)||'{}')}catch(e){prog={}}
@@ -33,7 +35,7 @@ const LV={C2:6,C1:5,B2:4,B1:3,A2:2,A1:1};
 function sortedIdx(arr){return arr.map((x,i)=>i).sort((a,b)=>(LV[arr[b].level]||0)-(LV[arr[a].level]||0)||a-b)}
 function itemRow(it,k){
  const p=prog[it.id]||{},s=p.s||'';
- const icon=s==='g'?'✔':s==='r'?'✕':'';
+ const icon=s==='g'?ICON.check:s==='r'?ICON.cross:'';
  return `<button class="item ${s}" data-k="${k}"><span class="ic ${s||'n'}">${icon}</span><span class="t">${esc(it.title)}</span>${p.tot?`<span class="sc">${p.sc}/${p.tot}</span>`:''}${it.level?`<span class="lv">${it.level}</span>`:''}</button>`;
 }
 const lvBadge=it=>it.level?` <span class="lv">${it.level}</span>`:'';
@@ -53,12 +55,12 @@ function cards(){
  let q=shuffle(due).concat(fresh),i=0;
  if(!q.length){app.innerHTML=backBtn()+`<h1>Готово</h1><p>На сегодня в этой теме карточек нет. Попробуй другую тему или квиз.</p>`;bindBack();return}
  const show=()=>{
-  if(i>=q.length){app.innerHTML=backBtn()+`<h1>Сессия закончена</h1><p>Разобрано карточек: ${q.length}.</p><div class="row"><button id="again">Ещё раз</button></div>`;bindBack();$('#again').onclick=cards;return}
+  if(i>=q.length){app.innerHTML=backBtn()+`<h1>Сессия закончена</h1><p>Ты прошёл ${q.length} ${plural(q.length,'карточку','карточки','карточек')}.</p><div class="row"><button id="again">Ещё раз</button></div>`;bindBack();$('#again').onclick=cards;return}
   const w=q[i],r=(srs[w.id]||{}).r||'';
   app.innerHTML=backBtn()+`<span class="tag">${i+1} / ${q.length} · ${esc(w.topic)}</span>
   <div class="card"><span class="dot ${r}"></span><div class="en">${esc(w.en)}</div><div class="ru" id="ru" style="visibility:hidden">${esc(w.ru)}</div></div>
-  <p class="tag">Кружок: пустой, когда карточка новая; зелёный, если ты её знал; красный, если не знал.</p>
-  <div class="row"><button class="sec" id="sp">🔊 Слушать</button><button id="rv">Показать перевод</button></div>
+  <p class="tag">Кружок в углу показывает прошлый ответ: зелёный, если помнил, красный, если нет.</p>
+  <div class="row"><button class="sec" id="sp">Слушать</button><button id="rv">Показать перевод</button></div>
   <div class="row" id="ans" style="display:none"><button class="bad" id="no">Не помню</button><button class="ok" id="yes">Помню</button></div>`;
   bindBack();
   $('#sp').onclick=()=>speak(w.en);
@@ -71,7 +73,7 @@ function cards(){
 
 /* ---------- READING ---------- */
 function readingList(){
- app.innerHTML=backBtn()+`<h1>Reading: T / F / NG</h1><p class="tag">Сверху самые сложные (C2), снизу простые. Уровень указан справа и он примерный. Жёлтый: в процессе, зелёный: всё верно, красный: есть ошибки.</p>`+
+ app.innerHTML=backBtn()+`<h1>Reading: T / F / NG</h1><p class="tag">Сложные тексты сверху, простые снизу. Уровень справа примерный. Цвет строки показывает статус: жёлтый, если начат, зелёный, если всё верно, красный, если есть ошибки.</p>`+
   sortedIdx(READING).map(k=>itemRow(READING[k],k)).join('');
  bindBack();
  document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>reading(+b.dataset.k));
@@ -98,20 +100,21 @@ function reading(k){
   clearInterval(tick);let s=0;
   r.questions.forEach((q,i)=>{
    const ok=ans[i]===q.a;if(ok)s++;
-   $('#e'+i).innerHTML=`${ok?'✔':'✘'} Верно: <b>${q.a==='NG'?'Not Given':q.a==='T'?'True':'False'}</b>. ${esc(q.why)}`;
+   const right=q.a==='NG'?'Not Given':q.a==='T'?'True':'False';
+   $('#e'+i).innerHTML=`${ok?`Верно, <b>${right}</b>.`:`Неверно. Правильный ответ <b>${right}</b>.`} ${esc(q.why)}`;
    $('#e'+i).style.color=ok?'var(--ok)':'var(--bad)';
   });
   setProg(r.id,s===r.questions.length?'g':'r',s,r.questions.length);
   const sec=Math.floor((Date.now()-t0)/1000);
-  $('#res').innerHTML=`<h2>Результат: ${s} из ${r.questions.length} · ${Math.floor(sec/60)} мин ${sec%60} с</h2>
-  <p class="tag">False: текст прямо противоречит. Not Given: текст о таком молчит.</p>`;
+  $('#res').innerHTML=`<h2>${s} из ${r.questions.length} правильно, время ${Math.floor(sec/60)} мин ${sec%60} с</h2>
+  <p class="tag">False значит, что текст прямо противоречит утверждению. Not Given значит, что в тексте об этом ничего нет.</p>`;
   $('#ck').style.display='none';window.scrollTo(0,document.body.scrollHeight);
  };
 }
 
 /* ---------- LISTENING ---------- */
 function listeningList(){
- app.innerHTML=backBtn()+`<h1>Listening</h1><p class="tag">Сверху самые сложные (C2), снизу простые. Уровень справа примерный. Запись звучит один раз, нужен звук. Жёлтый: в процессе, зелёный: всё верно, красный: есть ошибки.</p>`+
+ app.innerHTML=backBtn()+`<h1>Listening</h1><p class="tag">Сложные записи сверху, простые снизу. Уровень справа примерный. Запись звучит один раз, так что включи звук. Цвет строки показывает статус: жёлтый, если начата, зелёный, если всё верно, красный, если есть ошибки.</p>`+
   sortedIdx(LISTENING).map(k=>itemRow(LISTENING[k],k)).join('');
  bindBack();
  document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>listening(+b.dataset.k));
@@ -126,7 +129,7 @@ function listening(k){
   const [a,b]=q.s.split('____');
   return `<div class="q"><div class="st">${i+1}. ${esc(a)}<input id="li${i}" autocomplete="off" style="width:110px;font:inherit;padding:4px;margin:0 4px">${esc(b||'')}</div><div class="exp" id="le${i}"></div></div>`;
  }).join('');
- app.innerHTML=backBtn()+`<h2>${esc(L.title)}${lvBadge(L)}</h2><p class="tag">Голос для Listening (подбирается автоматически, можно сменить):</p><select id="vs"></select><div class="row"><button id="vt" class="sec">Проверить голос</button></div><div class="row"><button id="pl">▶ Начать (один раз)</button></div><p class="tag" id="st"></p>${qs}<div class="row"><button id="ck">Проверить</button></div><div id="res"></div>`;
+ app.innerHTML=backBtn()+`<h2>${esc(L.title)}${lvBadge(L)}</h2><p class="tag">Голос для Listening. Лучший выбирается сам, но его можно сменить.</p><select id="vs"></select><div class="row"><button id="vt" class="sec">Проверить голос</button></div><div class="row"><button id="pl">Включить запись</button></div><p class="tag" id="st"></p>${qs}<div class="row"><button id="ck">Проверить</button></div><div id="res"></div>`;
  bindBack();
  $('#bk').onclick=()=>{if(window.speechSynthesis)speechSynthesis.cancel();listeningList()};
  initVoice();
@@ -135,7 +138,7 @@ function listening(k){
   const i=+sg.dataset.i;picks[i]=+b.dataset.v;sg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
  }));
  $('#pl').onclick=()=>{
-  $('#pl').disabled=true;$('#st').textContent='Идёт запись...';
+  $('#pl').disabled=true;$('#st').textContent='Идёт запись';
   speakAll(L.script,ok=>{$('#st').textContent=ok?'Запись закончена.':'Озвучка недоступна на этом устройстве. Открой тренажёр в браузере.'});
  };
  $('#ck').onclick=()=>{
@@ -146,17 +149,17 @@ function listening(k){
    if(q.o){ok=picks[i]===q.a;right='ABC'[q.a]+'. '+q.o[q.a]}
    else{const v=normA(($('#li'+i)||{}).value);ok=q.a.includes(v);right=q.a[0]}
    if(ok)s++;
-   const e=$('#le'+i);e.textContent=(ok?'✔ ':'✘ ')+(ok?'Верно':'Верно: '+right);e.style.color=ok?'var(--ok)':'var(--bad)';
+   const e=$('#le'+i);e.textContent=ok?'Верно':'Неверно. Правильный ответ '+right;e.style.color=ok?'var(--ok)':'var(--bad)';
   });
   setProg(L.id,s===L.questions.length?'g':'r',s,L.questions.length);
-  $('#res').innerHTML=`<h2>Результат: ${s} из ${L.questions.length}</h2><p class="tag">Текст записи:</p><div class="passage"><p>${esc(L.script)}</p></div>`;
+  $('#res').innerHTML=`<h2>${s} из ${L.questions.length} правильно</h2><h2>Текст записи</h2><div class="passage"><p>${esc(L.script)}</p></div>`;
   $('#ck').style.display='none';$('#pl').disabled=true;
  };
 }
 
 /* ---------- WRITING ---------- */
 function writingList(){
- app.innerHTML=backBtn()+`<h1>Writing: Task 2</h1><p class="tag">Эссе от 250 слов, 40 минут. Жёлтый: пишешь, зелёный: готово (250+ слов), красный: не хватило слов. Готовый текст скопируй и вставь в чат с Claude, я разберу его по четырём критериям IELTS.</p>`+
+ app.innerHTML=backBtn()+`<h1>Writing: Task 2</h1><p class="tag">Эссе от 250 слов за 40 минут. Цвет строки показывает статус: жёлтый, если пишешь, зелёный, если набрал 250 слов, красный, если не хватило. Готовый текст скопируй в чат с Claude, он разберёт эссе по четырём критериям IELTS.</p>`+
   WRITING.map((w,k)=>itemRow({id:w.id,title:w.topic+': '+w.title},k)).join('');
  bindBack();
  document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>writing(+b.dataset.k));
@@ -168,7 +171,7 @@ function writing(k){
  setProg(w.id,'p');
  app.innerHTML=backBtn()+`<span id="timer">40:00</span><h2>${esc(w.title)}</h2>
  <div class="passage"><p>${esc(w.prompt)}</p><p class="tag">Write at least 250 words.</p></div>
- <h2>Фразы по теме (бери, если подходят)</h2>
+ <h2>Фразы по теме</h2>
  <div class="passage">${hints.map(h=>`<p><b>${esc(h.en)}</b><br><span class="tag">${esc(h.ru)}</span></p>`).join('')}</div>
  <h2>Твоё эссе</h2>
  <textarea id="essay" placeholder="Start writing here..." style="width:100%;min-height:280px;font:inherit;padding:10px;border-radius:12px;border:0;background:var(--sec);color:var(--tx)"></textarea>
@@ -185,13 +188,13 @@ function writing(k){
  bindBack();
  $('#bk').onclick=writingList;
  const ta=$('#essay');ta.value=saved;
- const count=()=>{const n=ta.value.trim().split(/\s+/).filter(Boolean).length;$('#wc').textContent=n+' слов'+(n<250?' (до 250 ещё '+(250-n)+')':'');return n};
+ const count=()=>{const n=ta.value.trim().split(/\s+/).filter(Boolean).length;$('#wc').textContent=n+' '+plural(n,'слово','слова','слов')+(n<250?', до 250 осталось '+(250-n):'');return n};
  count();
  ta.oninput=()=>{count();try{localStorage.setItem(key,ta.value)}catch(e){}};
  const finish=()=>{
   const n=count();
-  if(n>=250){setProg(w.id,'g',n,250);$('#msg').textContent='Готово: '+n+' слов. Скопируй эссе и вставь в чат с Claude для разбора.'}
-  else{setProg(w.id,'r',n,250);$('#msg').textContent='Не хватает слов: '+n+' из 250. Можно дописать и нажать «Завершить» ещё раз.'}
+  if(n>=250){setProg(w.id,'g',n,250);$('#msg').textContent='Готово, '+n+' '+plural(n,'слово','слова','слов')+'. Скопируй эссе в чат с Claude, он его разберёт.'}
+  else{setProg(w.id,'r',n,250);$('#msg').textContent='Пока '+n+' из 250 слов. Допиши и нажми «Завершить» ещё раз.'}
  };
  $('#fin').onclick=finish;
  const t0=Date.now();let done=false;

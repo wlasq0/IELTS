@@ -42,7 +42,7 @@ function lev(a,b){
  }
  return prev[b.length];
 }
-// 'ok' — точно, 'typo' — одна опечатка, '' — неверно
+// 'ok' если точно, 'typo' если одна опечатка, '' если неверно
 function vcheck(input,w){
  const parts=String(input||'').split(/[,;\/]/).map(vnorm).filter(Boolean);
  const ans=w.ru.map(vnorm);
@@ -61,7 +61,7 @@ function words(){
  let i=0,score=0;const miss=[];
  const next=()=>{
   if(i>=q.length){
-   app.innerHTML=backBtn()+`<div class="res-card"><div class="res-num">${score}<span>/${q.length}</span></div><div class="res-t">${score===q.length?'Без ошибок!':'Слова с ошибками будут в следующем раунде'}</div></div>`+
+   app.innerHTML=backBtn()+`<div class="res-card"><div class="res-num">${score}<span>/${q.length}</span></div><div class="res-t">${score===q.length?'Без ошибок':'Слова с ошибками будут в следующем раунде'}</div></div>`+
     (miss.length?`<h2>Повтори</h2><div class="miss">${miss.map(w=>`<div><b>${esc(w.en)}</b><span>${esc(w.ru[0])}</span></div>`).join('')}</div>`:'')+
     `<div class="row"><button id="again">Ещё раунд</button></div>`;
    bindBack();$('#again').onclick=words;return;
@@ -69,7 +69,7 @@ function words(){
   const w=q[i];let done=false;
   app.innerHTML=backBtn()+`<div class="prog"><div style="width:${i/q.length*100}%"></div></div>
    <div class="card wcard"><span class="pos">${POS[w.pos]||w.pos}</span><div class="en">${esc(w.en)}</div>
-   <button class="spk" id="sp" aria-label="Слушать">${ICON.speaker}</button></div>
+   <button class="spk" id="sp">${ICON.speaker}Слушать</button></div>
    <input id="wi" class="winput" placeholder="Перевод на русском" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done">
    <div id="fb" class="fb"></div>
    <div class="row"><button class="sec" id="dk">Не знаю</button><button id="ck">Проверить</button></div>
@@ -84,11 +84,11 @@ function words(){
    if(res){
     score++;vrate(w.id,true);
     fb.className='fb ok';
-    fb.innerHTML=res==='typo'?`<b>Верно, но с опечаткой.</b> Пишется: ${esc(w.ru[0])}`:`<b>Верно!</b>${others?' Ещё варианты: '+esc(others):''}`;
+    fb.innerHTML=res==='typo'?`<b>Засчитано, но с опечаткой.</b> Правильно пишется «${esc(w.ru[0])}».`:`<b>Верно.</b>${others?' Другие варианты: '+esc(others)+'.':''}`;
    }else{
     vrate(w.id,false);miss.push(w);
     fb.className='fb bad';
-    fb.innerHTML=`<b>Правильно: ${esc(w.ru[0])}</b>${others?'<br>Ещё варианты: '+esc(others):''}`;
+    fb.innerHTML=`<b>Правильный ответ «${esc(w.ru[0])}».</b>${others?'<br>Другие варианты: '+esc(others)+'.':''}`;
    }
    $('#dk').style.display='none';
    $('#ck').textContent=i+1<q.length?'Дальше':'Итоги';
