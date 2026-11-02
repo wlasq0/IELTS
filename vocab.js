@@ -26,7 +26,7 @@ function vrate(id,good){
 const vpool=()=>VOCAB.filter(w=>topic==='all'||w.topic===topic);
 function vstats(){
  const t=today(),p=vpool();
- return {due:p.filter(w=>vsrs[w.id]&&vsrs[w.id].d<=t).length,fresh:p.filter(w=>!vsrs[w.id]).length,known:p.filter(w=>vsrs[w.id]&&vsrs[w.id].b>=3).length,total:p.length};
+ return {due:p.filter(w=>vsrs[w.id]&&vsrs[w.id].d<=t).length,fresh:p.filter(w=>!vsrs[w.id]).length,known:p.filter(w=>vsrs[w.id]&&vsrs[w.id].b>=3).length,learned:p.filter(w=>vsrs[w.id]&&vsrs[w.id].b>=1).length,total:p.length};
 }
 const POS={n:'noun',v:'verb',adj:'adjective',adv:'adverb'};
 
@@ -58,13 +58,16 @@ function words(){
  const fresh=shuffle(p.filter(w=>!vsrs[w.id]));
  let q=due.concat(fresh).slice(0,10);
  if(!q.length)q=shuffle(p).slice(0,10); // всё выучено: просто случайный повтор
- let i=0,score=0;const miss=[];
+ let i=0,score=0;const miss=[],got=[];
  const next=()=>{
   if(i>=q.length){
    app.innerHTML=backBtn()+`<div class="res-card"><div class="res-num">${score}<span>/${q.length}</span></div><div class="res-t">${score===q.length?'Без ошибок':'Слова с ошибками будут в следующем раунде'}</div></div>`+
     (miss.length?`<h2>Повтори</h2><div class="miss">${miss.map(w=>`<div><b>${esc(w.en)}</b><span>${esc(w.ru[0])}</span></div>`).join('')}</div>`:'')+
-    `<div class="row"><button id="again">Ещё раунд</button></div>`;
-   bindBack();$('#again').onclick=words;return;
+    (got.length?`<p class="tag">Составь предложение с каждым угаданным словом, так слово лучше запомнится.</p>`:'')+
+    `<div class="row"><button class="sec" id="again">Ещё раунд</button>${got.length?'<button id="sen">Составить предложения</button>':''}</div>`;
+   bindBack();$('#again').onclick=words;
+   if(got.length)$('#sen').onclick=()=>sentences(shuffle(got),words);
+   return;
   }
   const w=q[i];let done=false;
   app.innerHTML=backBtn()+`<div class="prog"><div style="width:${i/q.length*100}%"></div></div>
@@ -82,7 +85,7 @@ function words(){
    const others=w.ru.slice(1).join(', ');
    const fb=$('#fb');
    if(res){
-    score++;vrate(w.id,true);
+    score++;got.push(w);vrate(w.id,true);
     fb.className='fb ok';
     fb.innerHTML=res==='typo'?`<b>Засчитано, но с опечаткой.</b> Правильно пишется «${esc(w.ru[0])}».`:`<b>Верно.</b>${others?' Другие варианты: '+esc(others)+'.':''}`;
    }else{
@@ -103,4 +106,72 @@ function words(){
   document.onkeydown=e=>{if(done&&e.key==='Enter'&&document.getElementById('wi')){e.preventDefault();go()}};
  };
  next();
+}
+
+/* Предложения: пишешь своё предложение на английском с угаданным словом.
+   Приложение проверяет только, что слово есть (в любой форме) и что в предложении от 6 слов.
+   Грамматику проверяет Claude: в конце предложения копируются одной кнопкой. */
+const MIN_WORDS=6;
+const learned=()=>vpool().filter(w=>vsrs[w.id]&&vsrs[w.id].b>=1); // последний ответ был верным
+// Есть ли слово в предложении. Формы: disrupt, disrupts, disrupted, disrupting; s и z не различаем (memorise/memorize)
+function hasWord(text,en){
+ const z=s=>s.toLowerCase().replace(/s/g,'z');
+ const t=z(text);
+ if(/[\s-]/.test(en))return t.replace(/-/g,' ').includes(z(en).replace(/-/g,' '));
+ let stem=z(en);
+ if(stem.length>4)stem=stem.replace(/z$/,'').replace(/[ey]$/,'');
+ return (t.match(/[a-z']+/g)||[]).some(x=>x.startsWith(stem)&&x.length<=stem.length+5);
+}
+function sentences(q,more){
+ let i=0;const out=[];
+ const next=()=>{
+  if(i>=q.length){
+   app.innerHTML=backBtn()+`<h1>Твои предложения</h1>`+
+    (out.length?`<div class="miss sent">${out.map(s=>`<div><b>${esc(s.w.en)}</b><span>${esc(s.text)}</span></div>`).join('')}</div>
+     <p class="tag">Скопируй их и вставь в чат с Claude. Он найдёт ошибки и предложит исправленные варианты.</p>
+     <div class="row"><button id="cp">Скопировать для Claude</button></div><p class="tag" id="msg"></p>`
+     :`<p>Ты пропустил все слова.</p>`)+
+    `<div class="row"><button class="sec" id="mr">${more===words?'Ещё раунд слов':'Ещё предложения'}</button></div>`;
+   bindBack();$('#mr').onclick=more;
+   if(out.length)$('#cp').onclick=()=>{
+    const text='Проверь мои предложения на английском. Для каждого назови ошибки и дай исправленный вариант.\n\n'+
+     out.map((s,k)=>`${k+1}. ${s.w.en}\n${s.text}`).join('\n\n');
+    const ok=()=>{$('#msg').textContent='Скопировано. Вставь в чат с Claude.'};
+    const fail=()=>{$('#msg').textContent='Не получилось скопировать. Выдели предложения и скопируй вручную.'};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(ok,fail);else fail();
+   };
+   return;
+  }
+  const w=q[i];
+  app.innerHTML=backBtn()+`<div class="prog"><div style="width:${i/q.length*100}%"></div></div>
+   <div class="card wcard"><span class="pos">${POS[w.pos]||w.pos}</span><div class="en">${esc(w.en)}</div>
+    <div class="tr"><span class="tx hid" id="tx">${esc(w.ru.join(', '))}</span><button class="eye" id="ey" aria-label="Показать перевод">${ICON.eye}</button></div></div>
+   <textarea id="si" class="winput sinput" placeholder="Напиши предложение на английском" autocapitalize="sentences" spellcheck="true"></textarea>
+   <div id="fb" class="fb"></div>
+   <div class="row"><button class="sec" id="sk">Пропустить</button><button id="ok">${i+1<q.length?'Дальше':'Готово'}</button></div>
+   <p class="tag" style="text-align:center">${i+1} из ${q.length}</p>`;
+  bindBack();
+  const tx=$('#tx'),ey=$('#ey'),inp=$('#si');
+  const toggle=()=>{const hid=tx.classList.toggle('hid');ey.innerHTML=hid?ICON.eye:ICON.eyeOff;ey.setAttribute('aria-label',hid?'Показать перевод':'Скрыть перевод')};
+  ey.onclick=toggle;tx.onclick=()=>{if(tx.classList.contains('hid'))toggle()};
+  inp.focus();
+  $('#sk').onclick=()=>{i++;next()};
+  $('#ok').onclick=()=>{
+   const text=inp.value.trim().replace(/\s+/g,' ');
+   const n=(text.match(/[A-Za-z']+/g)||[]).length;
+   const fb=$('#fb');fb.className='fb bad';
+   if(!hasWord(text,w.en)){fb.innerHTML=`<b>В предложении нет слова «${esc(w.en)}».</b> Подойдёт любая его форма.`;return}
+   if(n<MIN_WORDS){fb.innerHTML=`<b>Нужно хотя бы ${MIN_WORDS} слов.</b> Сейчас ${n}.`;return}
+   out.push({w,text});i++;next();
+  };
+ };
+ next();
+}
+function sentencesHome(){
+ const l=learned();
+ if(!l.length){
+  app.innerHTML=backBtn()+`<h1>Пока нет слов</h1><p>Угадай несколько слов в разделе «Слова», и они появятся здесь.</p><div class="row"><button id="tw">К словам</button></div>`;
+  bindBack();$('#tw').onclick=words;return;
+ }
+ sentences(shuffle(l).slice(0,5),sentencesHome);
 }

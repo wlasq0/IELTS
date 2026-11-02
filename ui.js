@@ -14,7 +14,10 @@ const ICON=(()=>{
   chevron:s('<path d="m9 6 6 6-6 6"/>'),
   back:s('<path d="m15 6-6 6 6 6"/>'),
   check:s('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
-  cross:s('<path d="M7 7l10 10M17 7 7 17"/>')
+  cross:s('<path d="M7 7l10 10M17 7 7 17"/>'),
+  sentence:s('<path d="M4 6h16M4 12h16M4 18h10"/>'),
+  eye:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeOff:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>')
  };
 })();
 
@@ -93,6 +96,11 @@ const ICON=(()=>{
  .miss div{display:flex;justify-content:space-between;gap:12px;padding:12px 14px}
  .miss div+div{border-top:1px solid var(--line)}
  .miss span{color:var(--hint);text-align:right}
+ .sent div{flex-direction:column;gap:2px}.sent span{text-align:left;color:var(--tx)}
+ .tr{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;color:var(--hint)}
+ .tx{transition:filter .2s}.tx.hid{filter:blur(6px);user-select:none;cursor:pointer}
+ .eye{display:flex;background:none;color:var(--hint);padding:4px}.eye svg{width:20px;height:20px}
+ .sinput{min-height:96px;resize:vertical;line-height:1.4}
  `;
  document.head.appendChild(st);
 })();
@@ -120,6 +128,7 @@ home=function(){
  <h2>Лексика</h2>
  <div class="list">
   ${row('b6','words','Слова','Пишешь перевод слова',v.due?v.due+' на повтор':v.fresh+' новых')}
+  ${row('b7','sentence','Предложения','Пишешь с выученными словами',v.learned?v.learned+' '+plural(v.learned,'слово','слова','слов'):'')}
   ${row('b2','quiz','Квиз','Четыре варианта ответа','10 вопросов')}
  </div>
  <h2>Экзамен</h2>
@@ -136,7 +145,7 @@ home=function(){
   <div class="row"><button id="shc">Готово</button></div>
  </div></div>`;
  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{topic=b.dataset.t;const x=document.querySelector('.chips').scrollLeft;home();document.querySelector('.chips').scrollLeft=x});
- $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b6').onclick=words;
+ $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b6').onclick=words;$('#b7').onclick=sentencesHome;
  $('#b3').onclick=readingList;$('#b4').onclick=listeningList;$('#b5').onclick=writingList;
  const sh=$('#sh');
  $('#set').onclick=()=>sh.classList.add('open');
