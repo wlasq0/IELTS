@@ -162,7 +162,7 @@ function sentences(q,more){
    const fb=$('#fb');fb.className='fb bad';
    if(!hasWord(text,w.en)){fb.innerHTML=`<b>В предложении нет слова «${esc(w.en)}».</b> Подойдёт любая его форма.`;return}
    if(n<MIN_WORDS){fb.innerHTML=`<b>Нужно хотя бы ${MIN_WORDS} слов.</b> Сейчас ${n}.`;return}
-   out.push({w,text});i++;next();
+   out.push({w,text});logAct('s');i++;next();
   };
  };
  next();

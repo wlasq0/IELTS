@@ -18,7 +18,9 @@ const ICON=(()=>{
   check:s('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
   cross:s('<path d="M7 7l10 10M17 7 7 17"/>'),
   eye:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
-  eyeOff:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>')
+  eyeOff:s('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>'),
+  home:s('<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'),
+  chart:s('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')
  };
 })();
 
@@ -87,6 +89,52 @@ const ICON=(()=>{
  .sheet.open{pointer-events:auto}.sheet.open .bg{opacity:1}.sheet.open .body{transform:none}
  .sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
  .sheet h2{margin-top:6px}
+
+ /* нижняя панель */
+ .tabs-sp{height:calc(64px + env(safe-area-inset-bottom))}
+ /* «жидкое стекло», как у панели Telegram: почти прозрачный фон, сильное размытие, светлая кромка */
+ .tabs{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:5;display:flex;gap:2px;padding:4px;border-radius:999px;
+  background:color-mix(in srgb,var(--bg) 45%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid color-mix(in srgb,#fff 35%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 40%,transparent),0 10px 30px -12px rgba(0,0,0,.35)}
+ .tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px;padding:6px 16px 5px;border-radius:999px;background:none;color:var(--hint);font-size:11px;font-weight:600}
+ .tabs button svg{width:24px;height:24px}
+ .tabs button.on{color:#ff5fa2;background:color-mix(in srgb,var(--tx) 9%,transparent)}
+
+ /* статистика */
+ .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ .k{display:flex;flex-direction:column;padding:14px 12px;border-radius:var(--r);background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+ .k b{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+ .k span{font-size:13px;line-height:1.25;margin-top:2px}
+ .k small{font-size:12px;color:var(--hint);margin-top:6px}
+ .k.hot{background:var(--grad);color:#fff;border-color:transparent}.k.hot small{color:rgba(255,255,255,.8)}
+ .box{padding:16px;border-radius:var(--r);background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+ .cal-h{font-size:14px;color:var(--hint);margin-bottom:10px}
+ .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+ .wd{font-size:11px;color:var(--hint);text-align:center}
+ .cd{aspect-ratio:1;padding:0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--hint);background:color-mix(in srgb,var(--hint) 16%,transparent)}
+ .cd.l1{background:#ffc93c;color:#5c4300}
+ .cd.l2{background:#2ecc71;color:#fff}
+ .cd.now{box-shadow:0 0 0 2px var(--bg),0 0 0 4px #ff5fa2}
+ .cd.sel{outline:2px solid var(--tx);outline-offset:1px}
+ .cd.fut{background:none}
+ .cal-d{margin-top:12px;font-size:14px;min-height:20px}
+ .leg{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--hint)}
+ .leg span{display:flex;align-items:center;gap:5px}
+ .leg i{width:12px;height:12px;border-radius:4px;background:color-mix(in srgb,var(--hint) 16%,transparent)}
+ .leg i.l1{background:#ffc93c}.leg i.l2{background:#2ecc71}
+ .bal{display:flex;align-items:center;gap:16px}
+ .dn{position:relative;width:118px;height:118px;flex:none}
+ .dn svg{width:118px;height:118px}
+ .dn span{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:800;line-height:1}
+ .dn small{font-size:11px;font-weight:500;color:var(--hint);margin-top:2px}
+ .bl{flex:1;display:flex;flex-direction:column;gap:8px;font-size:14px}
+ .bl div{display:flex;align-items:center;gap:8px}.bl i{width:10px;height:10px;border-radius:50%;flex:none}
+ .bl span{flex:1}.bl b{font-weight:600;color:var(--hint);font-size:13px}
+ .hint{margin:8px 4px 0}
+ .pr{margin-bottom:12px}
+ .pr-t{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.pr-t b{font-weight:600;color:var(--hint)}
+ .pr-b{height:8px;border-radius:4px;background:color-mix(in srgb,var(--hint) 16%,transparent);overflow:hidden}
+ .pr-b div{height:100%;border-radius:4px}
 
  /* слова и предложения */
  .prog{height:6px;border-radius:3px;background:var(--glass);overflow:hidden;margin:4px 0 14px}
@@ -163,7 +211,9 @@ home=function(){
   <p class="tag">Этот голос читает карточки, квиз и слова. Лучший из доступных выбирается сам. Для Listening голос выбирается отдельно, на экране задания.</p>
   <p class="tag">Карточки возвращаются через 1, 2, 4, 8 и 16 дней. После ошибки карточка снова появится сегодня.</p>
   <div class="row"><button id="shc">Готово</button></div>
- </div></div>`;
+ </div></div>
+ ${tabBar('home')}`;
+ bindTabs();
  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{topic=b.dataset.t;const x=document.querySelector('.chips').scrollLeft;home();document.querySelector('.chips').scrollLeft=x});
  $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b6').onclick=words;$('#b7').onclick=sentencesHome;
  $('#b3').onclick=readingList;$('#b4').onclick=listeningList;$('#b5').onclick=writingList;
