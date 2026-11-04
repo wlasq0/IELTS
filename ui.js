@@ -89,6 +89,7 @@ const ICON=(()=>{
  .sheet.open{pointer-events:auto}.sheet.open .bg{opacity:1}.sheet.open .body{transform:none}
  .sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
  .sheet h2{margin-top:6px}
+ .rbtn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-size:17px}.rbtn svg{width:18px;height:18px;color:var(--hint)}
 
  /* нижняя панель */
  .tabs-sp{height:calc(64px + env(safe-area-inset-bottom))}
@@ -210,12 +211,14 @@ home=function(){
   <div class="row"><button id="vt" class="sec">Проверить голос</button></div>
   <p class="tag">Этот голос читает карточки, квиз и слова. Лучший из доступных выбирается сам. Для Listening голос выбирается отдельно, на экране задания.</p>
   <p class="tag">Карточки возвращаются через 1, 2, 4, 8 и 16 дней. После ошибки карточка снова появится сегодня.</p>
+  <h2>Напоминания</h2>
+  <button class="sec rbtn" id="rmb"><span>${remindTimes().join(', ')||'Выключены'}</span>${ICON.arrow}</button>
   <div class="row"><button id="shc">Готово</button></div>
  </div></div>
  ${tabBar('home')}`;
  bindTabs();
  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{topic=b.dataset.t;const x=document.querySelector('.chips').scrollLeft;home();document.querySelector('.chips').scrollLeft=x});
- $('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b6').onclick=words;$('#b7').onclick=sentencesHome;
+ $('#rmb').onclick=remind;$('#b1').onclick=cards;$('#b2').onclick=quiz;$('#b6').onclick=words;$('#b7').onclick=sentencesHome;
  $('#b3').onclick=readingList;$('#b4').onclick=listeningList;$('#b5').onclick=writingList;
  const sh=$('#sh');
  $('#set').onclick=()=>sh.classList.add('open');

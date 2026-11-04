@@ -1,7 +1,7 @@
 /* translate: перевод слова по нажатию и фразы в текстах с классом tr-on (Reading, текст записи Listening).
    Каждое слово текста оборачивается в <span class="w">, так нажатие сразу знает слово на любом устройстве.
    Фраза: зажать первое слово, нажать последнее. На компе можно ещё выделить мышкой.
-   Карточка сверху показывает слово, основной перевод и другие значения. Предложение целиком не переводим:
+   Карточка снизу показывает слово, основной перевод и другие значения. Предложение целиком не переводим:
    контекст ученик понимает сам.
    Переводчики по очереди, каждому 5 секунд: Google (translate.googleapis.com), запасной адрес Google
    (clients5.google.com), MyMemory. Все бесплатные и без ключа. */
@@ -13,10 +13,10 @@
  .tr-on{cursor:pointer;-webkit-touch-callout:none}
  .touch .tr-on{-webkit-user-select:none;user-select:none}
  .tr-on .w.hl{background:rgba(255,95,162,.3);border-radius:4px;box-shadow:0 0 0 2px rgba(255,95,162,.3)}
- .trc{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:20;max-width:520px;margin:0 auto;padding:14px 44px 14px 16px;border-radius:20px;
+ .trc{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:20;max-width:520px;margin:0 auto;padding:14px 44px 14px 16px;border-radius:20px;
   background:var(--bg);background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
   border:1px solid rgba(255,255,255,.3);box-shadow:0 12px 32px -10px rgba(0,0,0,.4);
-  transform:translateY(-130%);opacity:0;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none}
+  transform:translateY(130%);opacity:0;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none}
  .trc.open{transform:none;opacity:1;pointer-events:auto}
  .trc-en{font-size:15px;font-weight:700;color:#ff5fa2}
  .trc-ru{font-size:20px;font-weight:700;margin-top:2px;line-height:1.25}
