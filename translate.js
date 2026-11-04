@@ -5,7 +5,8 @@
 (function(){
  const st=document.createElement('style');
  st.textContent=`
- .tr-on{cursor:pointer;-webkit-user-select:text;user-select:text}
+ .tr-on{cursor:pointer;-webkit-user-select:text;user-select:text;-webkit-touch-callout:none}
+ ::highlight(trsel){background-color:rgba(255,95,162,.3)}
  .trc{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:20;max-width:520px;margin:0 auto;padding:14px 44px 14px 16px;border-radius:20px;
   background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
   border:1px solid color-mix(in srgb,#fff 30%,transparent);box-shadow:0 12px 32px -10px rgba(0,0,0,.4);
@@ -23,7 +24,7 @@
  card.innerHTML='<div class="trc-en"></div><div class="trc-ru"></div><div class="trc-alt"></div><button class="trc-x" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg></button>';
  document.body.appendChild(card);
  const [cEn,cRu,cAlt]=card.children;
- const hide=()=>card.classList.remove('open');
+ const hide=()=>{card.classList.remove('open');mark(null);start=null};
  card.querySelector('.trc-x').onclick=e=>{e.stopPropagation();hide()};
 
  const POS_RU={'имя существительное':'сущ.','имя прилагательное':'прил.','глагол':'гл.','наречие':'нар.','предлог':'предл.','местоимение':'мест.','союз':'союз','междометие':'межд.'};
@@ -52,18 +53,25 @@
   }
  }
 
- // слово под пальцем или курсором
+ // слово под пальцем или курсором: Range с этим словом или null
  function wordAt(x,y){
   let node,off;
-  if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(!r)return '';node=r.startContainer;off=r.startOffset}
-  else if(document.caretPositionFromPoint){const p=document.caretPositionFromPoint(x,y);if(!p)return '';node=p.offsetNode;off=p.offset}
-  if(!node||node.nodeType!==3)return '';
+  if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(!r)return null;node=r.startContainer;off=r.startOffset}
+  else if(document.caretPositionFromPoint){const p=document.caretPositionFromPoint(x,y);if(!p)return null;node=p.offsetNode;off=p.offset}
+  if(!node||node.nodeType!==3||!node.parentElement.closest('.tr-on'))return null;
   const t=node.textContent,re=/[A-Za-z'’-]/;
   let s=off,e=off;
   while(s>0&&re.test(t[s-1]))s--;
   while(e<t.length&&re.test(t[e]))e++;
-  const w=t.slice(s,e).replace(/^['’-]+|['’-]+$/g,'');
-  return w.length>1?w:'';
+  while(s<e&&/['’-]/.test(t[s]))s++;
+  while(e>s&&/['’-]/.test(t[e-1]))e--;
+  if(e-s<2)return null;
+  const r=document.createRange();r.setStart(node,s);r.setEnd(node,e);return r;
+ }
+ // подсветка розовым через CSS Highlight API (где его нет, просто без подсветки)
+ function mark(r){
+  if(!(window.CSS&&CSS.highlights&&window.Highlight))return;
+  if(r)CSS.highlights.set('trsel',new Highlight(r));else CSS.highlights.delete('trsel');
  }
  const selText=()=>{
   const s=window.getSelection();
@@ -73,17 +81,46 @@
   return el&&el.closest('.tr-on')?s.toString():'';
  };
 
+ // Фраза без системного выделения (в Telegram на iPhone его нет):
+ // зажал первое слово, потом нажал последнее, и переводится всё между ними.
+ let start=null,lpTimer=0,lpFired=false,tx=0,ty=0;
+ document.addEventListener('touchstart',e=>{
+  lpFired=false;
+  const t=e.touches[0];if(e.touches.length>1||!t)return;
+  tx=t.clientX;ty=t.clientY;
+  const r=wordAt(tx,ty);if(!r)return;
+  lpTimer=setTimeout(()=>{
+   lpFired=true;start=r;mark(r);
+   last='';cEn.textContent=r.toString();cRu.textContent='Нажми на последнее слово фразы';cAlt.textContent='';
+   card.classList.add('open');
+   const hf=window.Telegram&&Telegram.WebApp&&Telegram.WebApp.HapticFeedback;if(hf)hf.selectionChanged();
+  },450);
+ },{passive:true});
+ document.addEventListener('touchmove',e=>{
+  const t=e.touches[0];if(t&&Math.hypot(t.clientX-tx,t.clientY-ty)>10)clearTimeout(lpTimer);
+ },{passive:true});
+ document.addEventListener('touchend',e=>{clearTimeout(lpTimer);if(lpFired&&e.cancelable)e.preventDefault()});
+ document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.tr-on')&&('ontouchstart' in window))e.preventDefault()});
+
  document.addEventListener('click',e=>{
   if(card.contains(e.target))return;
-  if(selText())return; // выделение обработает selectionchange
-  const zone=e.target.closest&&e.target.closest('.tr-on');
-  const w=zone?wordAt(e.clientX,e.clientY):'';
-  if(w)show(w);else hide();
+  if(lpFired){lpFired=false;return} // это был отпущенный палец после зажатия
+  if(selText())return; // системное выделение обработает selectionchange
+  const r=wordAt(e.clientX,e.clientY);
+  if(!r){start=null;hide();return}
+  if(start){ // второе нажатие: фраза от первого слова до этого
+   const ph=document.createRange();
+   const a=start.compareBoundaryPoints(Range.START_TO_START,r)<=0;
+   ph.setStart(a?start.startContainer:r.startContainer,a?start.startOffset:r.startOffset);
+   ph.setEnd(a?r.endContainer:start.endContainer,a?r.endOffset:start.endOffset);
+   start=null;mark(ph);show(ph.toString());return;
+  }
+  mark(r);show(r.toString());
  });
  let tm;
  document.addEventListener('selectionchange',()=>{
   clearTimeout(tm);
-  tm=setTimeout(()=>{const t=selText();if(/[A-Za-z]/.test(t))show(t)},450);
+  tm=setTimeout(()=>{const t=selText();if(/[A-Za-z]/.test(t)){mark(null);show(t)}},450);
  });
  // карточка закрывается при переходе на другой экран
  new MutationObserver(hide).observe(document.getElementById('app'),{childList:true});
