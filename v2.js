@@ -85,7 +85,8 @@ function reading(k){
  const tick=setInterval(()=>{const el=$('#timer');if(!el){clearInterval(tick);return}
   const s=Math.floor((Date.now()-t0)/1000);el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},500);
  app.innerHTML=backBtn()+`<span id="timer">00:00</span><h2>${esc(r.title)}${lvBadge(r)}</h2>
- <div class="passage">${r.text.map(p=>`<p>${esc(p)}</p>`).join('')}</div>
+ <div class="passage tr-on">${r.text.map(p=>`<p>${esc(p)}</p>`).join('')}</div>
+ <p class="tag">Нажми на слово, чтобы увидеть перевод. Чтобы перевести фразу, выдели её.</p>
  <h2>True / False / Not Given</h2>`+
  r.questions.map((q,i)=>`<div class="q" id="q${i}"><div class="st">${i+1}. ${esc(q.s)}</div>
   <div class="seg" data-i="${i}"><button data-v="T">True</button><button data-v="F">False</button><button data-v="NG">Not Given</button></div>
@@ -152,7 +153,7 @@ function listening(k){
    const e=$('#le'+i);e.textContent=ok?'Верно':'Неверно. Правильный ответ '+right;e.style.color=ok?'var(--ok)':'var(--bad)';
   });
   setProg(L.id,s===L.questions.length?'g':'r',s,L.questions.length);
-  $('#res').innerHTML=`<h2>${s} из ${L.questions.length} правильно</h2><h2>Текст записи</h2><div class="passage"><p>${esc(L.script)}</p></div>`;
+  $('#res').innerHTML=`<h2>${s} из ${L.questions.length} правильно</h2><h2>Текст записи</h2><div class="passage tr-on"><p>${esc(L.script)}</p></div><p class="tag">Нажми на слово, чтобы увидеть перевод.</p>`;
   $('#ck').style.display='none';$('#pl').disabled=true;
  };
 }
